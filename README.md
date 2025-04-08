@@ -1,7 +1,7 @@
 <h1 align="center">Hi 👋, I'm İdil</h1>
 <h3 align="center">Flutter developer from İstanbul</h3>
 
-- 🌱 I’m currently learning **C#, .NET, Game Development**
+- 🌱 I’m currently learning **C#, .NET**
 
 - 👨‍💻 All of my projects are available at [https://portfolio-b7d255.webflow.io](https://portfolio-b7d255.webflow.io)
 
