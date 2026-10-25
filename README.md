@@ -5,9 +5,9 @@
     alt="Pink header"
   />
   <img
-    src="[[https://media.tenor.com/REPLACE_WITH_GIF_ID.gif](https://tenor.com/tr/view/cat-cute-cat-bow-cat-pink-cat-smile-cat-hello-gif-8393027935639589957)](https://tenor.com/tr/view/cat-cute-cat-bow-cat-pink-cat-smile-cat-hello-gif-8393027935639589957)"
+    src="https://media1.tenor.com/m/dHoGcHW6VEUAAAAd/cat-cute-cat-bow.gif"
     width="100"
-    alt="Pastel pink kitty"
+    alt="Cute pink bow cat"
   />
 </p>
 <p align="center">
