@@ -17,6 +17,9 @@ jobs:
   generate:
     runs-on: ubuntu-latest
 
+    env:
+      GH_TOKEN: ${{ secrets.GH_PROFILE_TOKEN }}
+
     steps:
       - name: Checkout profile repository
         uses: actions/checkout@v4
@@ -27,8 +30,6 @@ jobs:
           python-version: "3.12"
 
       - name: Generate contribution graph
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: python scripts/generate_activity.py
 
       - name: Save updated SVG
