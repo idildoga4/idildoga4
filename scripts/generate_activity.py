@@ -1,5 +1,6 @@
-import os
+
 import json
+import os
 import urllib.request
 from datetime import date, timedelta
 from pathlib import Path
@@ -8,6 +9,12 @@ from xml.sax.saxutils import escape
 USERNAME = "idildoga4"
 TOKEN = os.environ.get("GH_TOKEN") or os.environ.get("GITHUB_TOKEN")
 
+if not TOKEN:
+    raise RuntimeError(
+        "Token bulunamadı. GH_TOKEN veya GITHUB_TOKEN ortam değişkenini ayarla."
+    )
+
+# Son yaklaşık 6 ay
 end_date = date.today()
 start_date = end_date - timedelta(days=182)
 
@@ -16,6 +23,7 @@ query($login: String!, $from: DateTime!, $to: DateTime!) {
   user(login: $login) {
     contributionsCollection(from: $from, to: $to) {
       contributionCalendar {
+        totalContributions
         weeks {
           contributionDays {
             date
@@ -40,76 +48,160 @@ payload = {
 
 request = urllib.request.Request(
     "https://api.github.com/graphql",
-    data=json.dumps(payload).encode(),
+    data=json.dumps(payload).encode("utf-8"),
     headers={
         "Content-Type": "application/json",
         "Authorization": f"Bearer {TOKEN}",
+        "User-Agent": "pink-github-activity-graph",
     },
 )
 
-with urllib.request.urlopen(request) as response:
-    result = json.loads(response.read())
+with urllib.request.urlopen(request, timeout=30) as response:
+    result = json.loads(response.read().decode("utf-8"))
 
-if "errors" in result:
-    raise RuntimeError(result["errors"])
+if result.get("errors"):
+    raise RuntimeError(
+        "GitHub GraphQL hatası: "
+        + json.dumps(result["errors"], ensure_ascii=False)
+    )
 
-weeks = result["data"]["user"]["contributionsCollection"]["contributionCalendar"]["weeks"]
-days = [day for week in weeks for day in week["contributionDays"]]
-days = [day for day in days if start_date.isoformat() <= day["date"] <= end_date.isoformat()]
+user = result.get("data", {}).get("user")
+if not user:
+    raise RuntimeError(
+        f"GitHub kullanıcısı bulunamadı: {USERNAME}. "
+        "Token izinlerini ve kullanıcı adını kontrol et."
+    )
 
+calendar = user["contributionsCollection"]["contributionCalendar"]
+days = [
+    day
+    for week in calendar["weeks"]
+    for day in week["contributionDays"]
+]
+
+days = [
+    day for day in days
+    if start_date.isoformat() <= day["date"] <= end_date.isoformat()
+]
+
+total = sum(day["contributionCount"] for day in days)
+active_days = sum(day["contributionCount"] > 0 for day in days)
+max_count = max(
+    (day["contributionCount"] for day in days),
+    default=0,
+)
+
+print(f"GitHub takvimi toplamı: {calendar['totalContributions']}")
+print(f"Grafikteki tarih aralığının katkıları: {total}")
+print(f"Katkı bulunan gün sayısı: {active_days}")
+print(f"En yoğun gün: {max_count}")
+
+# Pembe renk paleti
+COLORS = [
+    "#fce7f3",
+    "#f9a8d4",
+    "#f472b6",
+    "#db2777",
+    "#9d174d",
+]
+
+def color_for_count(count):
+    if count == 0 or max_count == 0:
+        return COLORS[0]
+
+    ratio = count / max_count
+
+    if ratio <= 0.25:
+        return COLORS[1]
+    if ratio <= 0.50:
+        return COLORS[2]
+    if ratio <= 0.75:
+        return COLORS[3]
+    return COLORS[4]
+
+# SVG boyutları
 cell = 13
 gap = 4
 left = 42
-top = 42
-columns = (len(days) + 6) // 7
-width = left + columns * (cell + gap)
-height = top + 7 * (cell + gap) + 30
+top = 48
+bottom = 32
 
-pink_levels = ["#fce7f3", "#f9a8d4", "#f472b6", "#db2777", "#9d174d"]
-max_count = max((d["contributionCount"] for d in days), default=0)
+# Haftanın günlerini Pazartesi'den başlayacak şekilde hizala.
+first_date = date.fromisoformat(days[0]["date"]) if days else start_date
+last_date = date.fromisoformat(days[-1]["date"]) if days else end_date
 
-def level(count):
-    if count == 0 or max_count == 0:
-        return pink_levels[0]
-    fraction = count / max_count
-    if fraction <= 0.25:
-        return pink_levels[1]
-    if fraction <= 0.5:
-        return pink_levels[2]
-    if fraction <= 0.75:
-        return pink_levels[3]
-    return pink_levels[4]
+grid_start = first_date - timedelta(days=first_date.weekday())
+grid_end = last_date + timedelta(days=(6 - last_date.weekday()))
+
+columns = ((grid_end - grid_start).days + 1) // 7
+width = left + columns * (cell + gap) + 12
+height = top + 7 * (cell + gap) + bottom
 
 parts = [
-    f'<svg xmlns="http://www.w3.org/2000/svg" width="100%" viewBox="0 0 {width} {height}">',
-    '<rect width="100%" height="100%" rx="12" fill="#fff5fa"/>',
-    '<text x="12" y="23" font-family="Arial,sans-serif" font-size="15" font-weight="bold" fill="#9b527a">my last six months ♡</text>',
+    f'<svg xmlns="http://www.w3.org/2000/svg" '
+    f'width="100%" viewBox="0 0 {width} {height}">',
+    f'<rect width="{width}" height="{height}" rx="12" fill="#fff5fa"/>',
+    '<text x="14" y="24" font-family="Arial,sans-serif" '
+    'font-size="15" font-weight="bold" fill="#9b527a">'
+    'my last six months ♡</text>',
 ]
 
-for i, label in enumerate(["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]):
-    if i in (0, 2, 4):
-        parts.append(
-            f'<text x="8" y="{top + i * (cell + gap) + 10}" font-family="Arial,sans-serif" font-size="9" fill="#9b527a">{label}</text>'
-        )
+# Haftanın günleri
+for label, weekday in [("Mon", 0), ("Wed", 2), ("Fri", 4)]:
+    y = top + weekday * (cell + gap) + 10
+    parts.append(
+        f'<text x="7" y="{y}" font-family="Arial,sans-serif" '
+        f'font-size="9" fill="#9b527a">{label}</text>'
+    )
+
+# Ay başlıkları
+shown_months = set()
 
 for day in days:
-    d = date.fromisoformat(day["date"])
-    col = (d - start_date).days // 7
-    row = d.weekday()
+    current = date.fromisoformat(day["date"])
+    col = (current - grid_start).days // 7
+
+    if current.day <= 7:
+        month_key = (current.year, current.month)
+        if month_key not in shown_months:
+            x = left + col * (cell + gap)
+            month_label = current.strftime("%b")
+            parts.append(
+                f'<text x="{x}" y="{top - 10}" '
+                'font-family="Arial,sans-serif" font-size="10" '
+                f'fill="#9b527a">{month_label}</text>'
+            )
+            shown_months.add(month_key)
+
+# Katkı kareleri
+for day in days:
+    current = date.fromisoformat(day["date"])
+    col = (current - grid_start).days // 7
+    row = current.weekday()
+
     x = left + col * (cell + gap)
     y = top + row * (cell + gap)
+
     count = day["contributionCount"]
-    title = escape(f"{count} contributions on {day['date']}")
+    label = escape(f"{count} contributions on {day['date']}")
+
     parts.append(
-        f'<rect x="{x}" y="{y}" width="{cell}" height="{cell}" rx="3" fill="{level(count)}"><title>{title}</title></rect>'
+        f'<rect x="{x}" y="{y}" width="{cell}" height="{cell}" '
+        f'rx="3" fill="{color_for_count(count)}">'
+        f'<title>{label}</title></rect>'
     )
 
 parts.append(
-    f'<text x="{left}" y="{height - 8}" font-family="Arial,sans-serif" font-size="10" fill="#9b527a">{start_date:%d %b %Y} — {end_date:%d %b %Y}</text>'
+    f'<text x="{left}" y="{height - 10}" '
+    'font-family="Arial,sans-serif" font-size="10" fill="#9b527a">'
+    f'{start_date:%d %b %Y} — {end_date:%d %b %Y}'
+    '</text>'
 )
+
 parts.append("</svg>")
 
 output = Path("assets/contributions-6-months.svg")
 output.parent.mkdir(parents=True, exist_ok=True)
 output.write_text("\n".join(parts), encoding="utf-8")
-print(f"Created {output}")
+
+print(f"SVG oluşturuldu: {output}")
