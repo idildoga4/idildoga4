@@ -10,7 +10,6 @@
 <text x="263" y="38" font-family="Arial,sans-serif" font-size="10" fill="#9b527a">Aug</text>
 <text x="348" y="38" font-family="Arial,sans-serif" font-size="10" fill="#9b527a">Sep</text>
 <text x="416" y="38" font-family="Arial,sans-serif" font-size="10" fill="#9b527a">Oct</text>
-<rect x="42" y="65" width="13" height="13" rx="3" fill="#fce7f3"><title>0 contributions on 2026-04-28</title></rect>
 <rect x="42" y="82" width="13" height="13" rx="3" fill="#fce7f3"><title>0 contributions on 2026-04-29</title></rect>
 <rect x="42" y="99" width="13" height="13" rx="3" fill="#f9a8d4"><title>2 contributions on 2026-04-30</title></rect>
 <rect x="42" y="116" width="13" height="13" rx="3" fill="#fce7f3"><title>0 contributions on 2026-05-01</title></rect>
@@ -193,5 +192,6 @@
 <rect x="467" y="150" width="13" height="13" rx="3" fill="#db2777"><title>22 contributions on 2026-10-25</title></rect>
 <rect x="484" y="48" width="13" height="13" rx="3" fill="#f9a8d4"><title>6 contributions on 2026-10-26</title></rect>
 <rect x="484" y="65" width="13" height="13" rx="3" fill="#fce7f3"><title>0 contributions on 2026-10-27</title></rect>
-<text x="42" y="189" font-family="Arial,sans-serif" font-size="10" fill="#9b527a">28 Apr 2026 — 27 Oct 2026</text>
+<rect x="484" y="82" width="13" height="13" rx="3" fill="#fce7f3"><title>0 contributions on 2026-10-28</title></rect>
+<text x="42" y="189" font-family="Arial,sans-serif" font-size="10" fill="#9b527a">29 Apr 2026 — 28 Oct 2026</text>
 </svg>
